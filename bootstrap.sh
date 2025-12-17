@@ -11,13 +11,13 @@ PROJECT_NAME=${INPUT_PROJECT:-$DEFAULT_PROJECT}
 # 2️⃣ 检查 Docker Compose 项目名是否被占用
 COUNTER=1
 ORIGINAL_NAME="$PROJECT_NAME"
-# 检查是否已有容器使用该项目名
 while [ "$(docker ps -a --filter "name=^${PROJECT_NAME}_" -q | wc -l)" -gt 0 ]; do
     PROJECT_NAME="${ORIGINAL_NAME}-${COUNTER}"
     COUNTER=$((COUNTER + 1))
 done
+echo "🚀 Docker Compose 项目名: $PROJECT_NAME"
 
-# 3️⃣ 设置本地目录（和项目名保持一致）
+# 3️⃣ 设置本地目录
 PROJECT_DIR="$PROJECT_NAME"
 if [ -d "$PROJECT_DIR" ]; then
     echo "⚠️ 目录 $PROJECT_DIR 已存在，将自动生成新目录"
@@ -35,8 +35,9 @@ git clone "$GIT_REPO" "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
 # 5️⃣ 安装脚本（交互式）
-if [ ! -f "install.sh" ]; then
-cat > install.sh <<EOF
+INSTALL_SCRIPT="install.sh"
+if [ ! -f "$INSTALL_SCRIPT" ]; then
+cat > "$INSTALL_SCRIPT" <<EOF
 #!/bin/bash
 set -e
 
@@ -59,8 +60,11 @@ docker compose -p "$PROJECT_NAME" up -d
 
 echo "🎉 安装完成！访问 http://localhost:\$WP_PORT"
 EOF
-chmod +x install.sh
+
+# ✅ 确保有执行权限
+chmod +x "$INSTALL_SCRIPT"
 fi
 
-# 6️⃣ 执行
-./install.sh
+# 6️⃣ 执行 install.sh
+# 用 bash 执行，保证不会因为权限问题失败
+bash "$INSTALL_SCRIPT"
