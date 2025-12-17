@@ -1,83 +1,62 @@
 #!/bin/bash
-
-# 用法：
-# bash bootstrap.sh [本地目录名] [GitHub 仓库地址]
-# 示例：
-# bash bootstrap.sh site-quote https://github.com/username/site-quote.git
-
 set -e
 
-PROJECT_DIR=${1:-site-quote}
+DEFAULT_PROJECT="site-quote"
 GIT_REPO=${2:-https://github.com/username/site-quote.git}
 
-echo "🚀 开始一键部署项目"
+# 1️⃣ 生成安全的 Docker Compose 项目名
+PROJECT_NAME="$DEFAULT_PROJECT"
+COUNTER=1
+while docker compose -p "$PROJECT_NAME" ps >/dev/null 2>&1; do
+    PROJECT_NAME="${DEFAULT_PROJECT}-${COUNTER}"
+    COUNTER=$((COUNTER + 1))
+done
+echo "🚀 Docker Compose 项目名: $PROJECT_NAME"
 
-# 1️⃣ 检查 docker
-if ! command -v docker >/dev/null 2>&1; then
-  echo "❌ Docker 未安装，请先安装 Docker"
-  exit 1
-fi
-
-# 2️⃣ 检查 docker compose
-if ! docker compose version >/dev/null 2>&1; then
-  echo "❌ Docker Compose 未安装或版本过低"
-  exit 1
+# 2️⃣ 设置本地目录
+PROJECT_DIR="$PROJECT_NAME"
+if [ -d "$PROJECT_DIR" ]; then
+    echo "⚠️ 目录 $PROJECT_DIR 已存在，将自动生成新目录"
+    COUNTER=1
+    while [ -d "${PROJECT_DIR}-${COUNTER}" ]; do
+        COUNTER=$((COUNTER+1))
+    done
+    PROJECT_DIR="${PROJECT_DIR}-${COUNTER}"
+    echo "📁 使用新目录: $PROJECT_DIR"
 fi
 
 # 3️⃣ 克隆项目
-if [ -d "$PROJECT_DIR" ]; then
-  echo "⚠️  目录 $PROJECT_DIR 已存在，将直接使用已有目录"
-else
-  echo "📦 克隆 GitHub 项目到 $PROJECT_DIR"
-  git clone "$GIT_REPO" "$PROJECT_DIR"
-fi
+git clone "$GIT_REPO" "$PROJECT_DIR"
 
-# 4️⃣ 进入项目目录
 cd "$PROJECT_DIR"
 
-# 5️⃣ 检查 install.sh 是否存在
+# 4️⃣ 安装脚本（交互式）
 if [ ! -f "install.sh" ]; then
-  echo "⚠️  install.sh 不存在，创建默认 install.sh"
-  cat > install.sh <<'EOF'
+cat > install.sh <<EOF
 #!/bin/bash
 set -e
 
-echo "🚀 开始安装 WordPress (Docker)..."
+echo "🚀 安装 WordPress (Docker)..."
 
-# 检查 docker
-if ! command -v docker >/dev/null 2>&1; then
-  echo "❌ Docker 未安装"
-  exit 1
-fi
+read -p "请输入 WordPress 访问端口 [默认8080]: " WP_PORT
+WP_PORT=\${WP_PORT:-8080}
+read -p "请输入 MySQL 端口 [默认3306]: " DB_PORT
+DB_PORT=\${DB_PORT:-3306}
 
-# 检查 docker compose
-if ! docker compose version >/dev/null 2>&1; then
-  echo "❌ Docker Compose 未安装"
-  exit 1
-fi
-
-# 创建 .env
-if [ ! -f ".env" ]; then
-  cat > .env <<EOL
-PROJECT_NO=1
-WP_PORT=8080
-DB_PORT=3306
+cat > .env <<EOL
+WP_PORT=\$WP_PORT
+DB_PORT=\$DB_PORT
 EOL
-fi
 
-# 创建 db-data 和 wordpress
 mkdir -p db-data wordpress
 
-# 启动 docker compose
-docker compose up -d
+# 使用安全的项目名启动 Compose
+docker compose -p "$PROJECT_NAME" up -d
 
-WP_PORT=$(grep WP_PORT .env | cut -d '=' -f2)
-echo "🎉 安装完成！访问 http://localhost:${WP_PORT}"
+echo "🎉 安装完成！访问 http://localhost:\$WP_PORT"
 EOF
-  chmod +x install.sh
+chmod +x install.sh
 fi
 
-# 6️⃣ 执行 install.sh
-echo "🐳 执行 install.sh 一键安装"
-chmod +x install.sh
+# 5️⃣ 执行
 ./install.sh
