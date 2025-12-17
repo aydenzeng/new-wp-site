@@ -1,19 +1,23 @@
 #!/bin/bash
 set -e
 
-DEFAULT_PROJECT="site-quote"
-GIT_REPO=${2:-https://github.com/username/site-quote.git}
+DEFAULT_PROJECT="new-site"
+GIT_REPO="https://github.com/aydenzeng/new-wp-site.git"
 
-# 1️⃣ 生成安全的 Docker Compose 项目名
-PROJECT_NAME="$DEFAULT_PROJECT"
+# 1️⃣ 用户输入项目名
+read -p "请输入项目名 [默认 $DEFAULT_PROJECT]: " INPUT_PROJECT
+PROJECT_NAME=${INPUT_PROJECT:-$DEFAULT_PROJECT}
+
+# 2️⃣ 检查 Docker Compose 项目名是否被占用
 COUNTER=1
+ORIGINAL_NAME="$PROJECT_NAME"
 while docker compose -p "$PROJECT_NAME" ps >/dev/null 2>&1; do
-    PROJECT_NAME="${DEFAULT_PROJECT}-${COUNTER}"
+    PROJECT_NAME="${ORIGINAL_NAME}-${COUNTER}"
     COUNTER=$((COUNTER + 1))
 done
 echo "🚀 Docker Compose 项目名: $PROJECT_NAME"
 
-# 2️⃣ 设置本地目录
+# 3️⃣ 设置本地目录（和项目名保持一致）
 PROJECT_DIR="$PROJECT_NAME"
 if [ -d "$PROJECT_DIR" ]; then
     echo "⚠️ 目录 $PROJECT_DIR 已存在，将自动生成新目录"
@@ -25,12 +29,12 @@ if [ -d "$PROJECT_DIR" ]; then
     echo "📁 使用新目录: $PROJECT_DIR"
 fi
 
-# 3️⃣ 克隆项目
+# 4️⃣ 克隆项目
 git clone "$GIT_REPO" "$PROJECT_DIR"
 
 cd "$PROJECT_DIR"
 
-# 4️⃣ 安装脚本（交互式）
+# 5️⃣ 安装脚本（交互式）
 if [ ! -f "install.sh" ]; then
 cat > install.sh <<EOF
 #!/bin/bash
@@ -58,5 +62,5 @@ EOF
 chmod +x install.sh
 fi
 
-# 5️⃣ 执行
+# 6️⃣ 执行
 ./install.sh
