@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  db:
+    image: biarms/mysql:5.7
+    container_name: db_${PROJECT_NO}
+    volumes:
+      - ./db-data:/var/lib/mysql:delegated
+    ports:
+      - "${DB_PORT}:3306"
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: site_quote_${PROJECT_NO}
+      MYSQL_USER: new1
+      MYSQL_PASSWORD: new1
+    networks:
+      - wp_net
+
+  wordpress:
+    image: wordpress:php7.4-apache
+    container_name: wordpress_${PROJECT_NO}
+    depends_on:
+      - db
+    volumes:
+      - ./wordpress:/var/www/html
+    ports:
+      - "${WP_PORT}:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: new1
+      WORDPRESS_DB_PASSWORD: new1
+      WORDPRESS_DB_NAME: site_quote_${PROJECT_NO}
+    networks:
+      - wp_net
+
+networks:
+  wp_net:
+    name: wp_${PROJECT_NO}
