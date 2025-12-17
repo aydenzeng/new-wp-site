@@ -11,11 +11,11 @@ PROJECT_NAME=${INPUT_PROJECT:-$DEFAULT_PROJECT}
 # 2️⃣ 检查 Docker Compose 项目名是否被占用
 COUNTER=1
 ORIGINAL_NAME="$PROJECT_NAME"
-while docker compose -p "$PROJECT_NAME" ps >/dev/null 2>&1; do
+# 检查是否已有容器使用该项目名
+while [ "$(docker ps -a --filter "name=^${PROJECT_NAME}_" -q | wc -l)" -gt 0 ]; do
     PROJECT_NAME="${ORIGINAL_NAME}-${COUNTER}"
     COUNTER=$((COUNTER + 1))
 done
-echo "🚀 Docker Compose 项目名: $PROJECT_NAME"
 
 # 3️⃣ 设置本地目录（和项目名保持一致）
 PROJECT_DIR="$PROJECT_NAME"
